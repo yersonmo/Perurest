@@ -1,9 +1,13 @@
 package com.perurest.data.mapper
 
+import com.perurest.domain.Dish as DishDomain
+import com.perurest.domain.model.Dish as DishModel
 
-import com.perurest.data.local.DishEntity
-import com.perurest.domain.Dish
 
-
-fun DishEntity.toDomain() = Dish(id, name, description, price, imageUrl)
-fun Dish.toEntity() = DishEntity(id, name, description, price, imageUrl)
+fun DishDomain.toModel(): DishModel = DishModel(
+    id = id,
+    name = name,
+    description = description,
+    imageUrl = imageUrl,
+    price = price
+)

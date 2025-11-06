@@ -5,51 +5,35 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
-import com.perurest.data.SampleSeed
+import com.perurest.domain.Dish
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlatoDetalleScreen(id: Int, onBack: () -> Unit) {
-    val dish = SampleSeed.dishes.find { it.id == id }
-
+fun PlatoDetailScreen(
+    id: Int,
+    onBack: () -> Unit,
+    onAddClick: (Dish) -> Unit   // ✅ No “onAddToCart”
+) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = dish?.name ?: "Plato") },
+                title = { Text("Detalle del Plato") },
                 navigationIcon = {
-                    TextButton(onClick = onBack) { Text(text = "Atrás") }
+                    TextButton(onClick = onBack) { Text("Atrás") }
                 }
             )
         }
-    ) { padding ->
-        if (dish != null) {
-            Column(
-                Modifier
-                    .padding(padding)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                AsyncImage(
-                    model = dish.imageUrl,
-                    contentDescription = dish.name,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(220.dp)
-                )
-                Text(text = dish.description, style = MaterialTheme.typography.bodyLarge)
-                Text(
-                    text = "$${dish.price}",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Button(onClick = { /* acción de pedido */ }) {
-                    Text(text = "Agregar al pedido")
-                }
-            }
-        } else {
-            Box(Modifier.padding(padding).padding(16.dp)) {
-                Text(text = "Plato no encontrado")
-            }
+    ) { pad ->
+        Column(
+            modifier = Modifier
+                .padding(pad)
+                .padding(16.dp)
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text("Detalle del plato con ID: $id", style = MaterialTheme.typography.titleMedium)
+            Text("Aquí puedes mostrar ingredientes, precio, etc.")
         }
     }
 }
