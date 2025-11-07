@@ -20,69 +20,61 @@ import com.perurest.ui.viewmodel.AuthViewModel
 import com.perurest.ui.viewmodel.MenuViewModel
 import com.perurest.ui.viewmodel.CartViewModel
 
-// Si usas un ServiceLocator/factory para Auth:
 import com.perurest.di.ServiceLocator
 
-// === Tipos: dominio vs modelo (evita el choque de nombres) ===
-import com.perurest.domain.Dish as DishDomain
+// Usamos SIEMPRE el modelo de UI
 import com.perurest.domain.model.Dish as DishModel
 
-/* --------------------------------------------------------------------------
-   Conversión de dominio -> modelo.
-   Si ya tienes un mapper oficial (p.ej. DishDomain.toModel()), úsalo y borra 'adapt'.
-----------------------------------------------------------------------------*/
-private fun adapt(d: DishDomain): DishModel =
-    DishModel(
-        id = d.id,
-        name = d.name,
-        description = d.description,
-        price = d.price,
-        imageUrl = d.imageUrl
-    )
+private object Routes {
+    const val Login = "login"
+    const val Register = "register"
+    const val Menu = "menu"
+    const val Plate = "plate"
+    const val Cart = "cart"
+    const val Checkout = "checkout"
+}
 
 @Composable
 fun PerurestNavHost() {
     val nav = rememberNavController()
 
-    // ViewModels compartidos en el NavHost
     val authVm: AuthViewModel = viewModel(factory = ServiceLocator.authVmFactory())
     val menuVm: MenuViewModel = viewModel()
     val cartVm: CartViewModel = viewModel()
 
-    NavHost(navController = nav, startDestination = "login") {
+    NavHost(navController = nav, startDestination = Routes.Login) {
 
-        // -------------------- LOGIN --------------------
-        composable(route = "login") {
+        // LOGIN
+        composable(route = Routes.Login) {
             val st = authVm.state.collectAsStateWithLifecycle().value
-
             LoginScreen(
                 state = st,
                 onEmailChange = authVm::onEmail,
                 onPasswordChange = authVm::onPassword,
                 onLogin = {
                     authVm.doLogin()
-                    nav.navigate("menu") {
-                        popUpTo("login") { inclusive = true }
+                    nav.navigate(Routes.Menu) {
+                        popUpTo(Routes.Login) { inclusive = true }
                     }
                 },
-                onRegisterClick = { nav.navigate("register") }
+                onRegisterClick = { nav.navigate(Routes.Register) }
             )
         }
 
-        // ------------------- REGISTER ------------------
-        composable(route = "register") {
+        // REGISTER
+        composable(route = Routes.Register) {
             RegisterScreen(
                 onBack = { nav.popBackStack() },
                 onRegistered = {
-                    nav.navigate("menu") {
-                        popUpTo("register") { inclusive = true }
+                    nav.navigate(Routes.Menu) {
+                        popUpTo(Routes.Login) { inclusive = true }
                     }
                 }
             )
         }
 
-        // --------------------- MENÚ --------------------
-        composable(route = "menu") {
+        // MENÚ
+        composable(route = Routes.Menu) {
             val menuState = menuVm.state.collectAsStateWithLifecycle().value
             val cartState = cartVm.state.collectAsStateWithLifecycle().value
             val cartCount = cartState.items.sumOf { it.qty }
@@ -91,53 +83,56 @@ fun PerurestNavHost() {
                 state = menuState,
                 cartCount = cartCount,
                 onQueryChange = menuVm::onQueryChange,
-                onPlatoClick = { id -> nav.navigate("plate/$id") },
-                onAddToCart = { dishModel: DishModel -> cartVm.add(dishModel) },   // <— DishModel aquí
-                onOpenCart = { nav.navigate("cart") }
+                onPlatoClick = { id -> nav.navigate("${Routes.Plate}/$id") },
+                onAddToCart = { dishModel: DishModel -> cartVm.add(dishModel) },
+                onOpenCart = { nav.navigate(Routes.Cart) }
             )
         }
 
-// DETALLE
+        // DETALLE
         composable(
-            route = "plate/{id}",
+            route = "${Routes.Plate}/{id}",
             arguments = listOf(navArgument(name = "id") { type = NavType.IntType })
         ) { backStackEntry ->
-            val id = backStackEntry.arguments?.getInt("id") ?: return@composable
+            val id = backStackEntry.arguments?.getInt("id")
+            if (id == null) {
+                nav.popBackStack()
+                return@composable
+            }
 
+            // La pantalla de detalle también trabaja con DishModel
             PlatoDetailScreen(
                 id = id,
                 onBack = { nav.popBackStack() },
-                onAddClick = { dishDomain: DishDomain ->
-                    // usa tu mapper real si lo tienes, p. ej. dishDomain.toModel()
-                    val dishModel: DishModel = adapt(dishDomain)
+                onAddClick = { dishModel: DishModel ->
                     cartVm.add(dishModel)
                 }
             )
         }
 
-// CARRITO
-        composable(route = "cart") {
+        // CARRITO
+        composable(route = Routes.Cart) {
             val cartState = cartVm.state.collectAsStateWithLifecycle().value
-
             CartScreen(
                 state = cartState,
-                onRemove = { dishModel: DishModel -> cartVm.remove(dishModel) },   // <— DishModel aquí
+                onRemove = { dishModel: DishModel -> cartVm.remove(dishModel) },
                 onClear = { cartVm.clear() },
-                onCheckout = { nav.navigate("checkout") },
+                onCheckout = { nav.navigate(Routes.Checkout) },
                 onBack = { nav.popBackStack() }
             )
         }
 
-// CHECKOUT
-        composable(route = "checkout") {
+        // CHECKOUT
+        composable(route = Routes.Checkout) {
             val cartState = cartVm.state.collectAsStateWithLifecycle().value
-
             CheckoutScreen(
-                state = cartState,                 // <— nombre correcto del parámetro
+                state = cartState,
                 onBack = { nav.popBackStack() },
                 onConfirm = {
                     cartVm.clear()
-                    nav.popBackStack(route = "menu", inclusive = false)
+                    nav.popBackStack(route = Routes.Menu, inclusive = false)
                 }
             )
         }
+    }
+}

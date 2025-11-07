@@ -1,108 +1,55 @@
 package com.perurest.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.perurest.domain.model.Dish
+import com.perurest.ui.viewmodel.state.CartItem
+import com.perurest.ui.viewmodel.state.CartState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 
-data class CartItem(
-    val dish: Dish,
-    val qty: Int
-) {
-    val subtotal: Double get() = dish.price * qty
-}
-
-
-data class CartUiState(
-    val items: List<CartItem> = emptyList(),
-    val total: Double = 0.0,
-    val count: Int = 0
-)
+// Modelo de UI
+import com.perurest.domain.model.Dish as DishModel
 
 class CartViewModel : ViewModel() {
 
-    private val _items = MutableStateFlow<List<CartItem>>(emptyList())
+    private val _state = MutableStateFlow(CartState())
+    val state: StateFlow<CartState> = _state
 
-    /** Cantidad total de unidades en el carrito */
-    val count: StateFlow<Int> = _items
-        .map { list -> list.sumOf { it.qty } }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = 0
-        )
-
-    /** Estado de UI derivado de _items (items, total y count) */
-    val state: StateFlow<CartUiState> = _items
-        .map { list ->
-            CartUiState(
-                items = list,
-                total = list.sumOf { it.subtotal },
-                count = list.sumOf { it.qty }
-            )
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = CartUiState()
-        )
-
-    /* ----------------- Acciones públicas ----------------- */
-
-    fun add(dish: com.perurest.domain.Dish) {
-        val current = _items.value.toMutableList()
-        val idx = current.indexOfFirst { it.dish.id == dish.id }
-        if (idx >= 0) {
-            current[idx] = current[idx].copy(qty = current[idx].qty + 1)
-        } else {
-            current += CartItem(dish, 1)
-        }
-        _items.value = current
-    }
-
-    fun remove(dish: Dish) {
-        val current = _items.value.toMutableList()
-        val idx = current.indexOfFirst { it.dish.id == dish.id }
-        if (idx >= 0) {
-            current.removeAt(idx)
-            _items.value = current
+    fun add(dish: DishModel) {
+        _state.update { old ->
+            val idx = old.items.indexOfFirst { it.dish.id == dish.id }
+            val newItems =
+                if (idx >= 0) {
+                    old.items.toMutableList().also { list ->
+                        val it = list[idx]
+                        list[idx] = it.copy(qty = it.qty + 1)
+                    }
+                } else {
+                    old.items + CartItem(dish = dish, qty = 1)
+                }
+            old.copy(items = newItems)
         }
     }
 
-    fun removeById(dishId: Int) {
-        val current = _items.value.toMutableList()
-        val idx = current.indexOfFirst { it.dish.id == dishId }
-        if (idx >= 0) {
-            current.removeAt(idx)
-            _items.value = current
-        }
-    }
-
-    fun inc(dishId: Int) {
-        val current = _items.value.toMutableList()
-        val idx = current.indexOfFirst { it.dish.id == dishId }
-        if (idx >= 0) {
-            current[idx] = current[idx].copy(qty = current[idx].qty + 1)
-            _items.value = current
-        }
-    }
-
-    fun dec(dishId: Int) {
-        val current = _items.value.toMutableList()
-        val idx = current.indexOfFirst { it.dish.id == dishId }
-        if (idx >= 0) {
-            val newQty = current[idx].qty - 1
-            if (newQty <= 0) current.removeAt(idx)
-            else current[idx] = current[idx].copy(qty = newQty)
-            _items.value = current
+    fun remove(dish: DishModel) {
+        _state.update { old ->
+            val idx = old.items.indexOfFirst { it.dish.id == dish.id }
+            if (idx < 0) return@update old
+            val list = old.items.toMutableList()
+            val it = list[idx]
+            val new =
+                if (it.qty > 1) {
+                    list[idx] = it.copy(qty = it.qty - 1)
+                    list.toList()
+                } else {
+                    list.removeAt(idx)
+                    list.toList()
+                }
+            old.copy(items = new)
         }
     }
 
     fun clear() {
-        _items.value = emptyList()
+        _state.update { it.copy(items = emptyList()) }
     }
 }
