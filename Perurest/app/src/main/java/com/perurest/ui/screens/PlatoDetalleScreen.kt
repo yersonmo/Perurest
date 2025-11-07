@@ -2,53 +2,58 @@ package com.perurest.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
-import com.perurest.data.SampleSeed
+import com.perurest.domain.model.Dish as DishModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-fun PlatoDetalleScreen(id: Int, onBack: () -> Unit) {
-    val dish = SampleSeed.dishes.find { it.id == id }
+fun PlatoDetailScreen(
+    id: Int,
+    onBack: () -> Unit,
+    onAddClick: (DishModel) -> Unit
+) {
+    // Mock simple para compilar y usar el callback
+    val dish = remember(id) {
+        DishModel(
+            id = id,
+            name = "Detalle del Plato #$id",
+            description = "Descripción breve del plato seleccionado.",
+            price = 9.90,
+            imageUrl = ""
+        )
+    }
 
+    // Usamos CenterAlignedTopAppBar (estable) para evitar @OptIn
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(text = dish?.name ?: "Plato") },
+            CenterAlignedTopAppBar(
+                title = { Text("Detalle del Plato") },
                 navigationIcon = {
-                    TextButton(onClick = onBack) { Text(text = "Atrás") }
+                    TextButton(onClick = onBack) { Text("Atrás") }
                 }
             )
         }
-    ) { padding ->
-        if (dish != null) {
-            Column(
-                Modifier
-                    .padding(padding)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) { pad ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(pad)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(text = dish.name, style = MaterialTheme.typography.titleLarge)
+            Text("Precio: $${"%.2f".format(dish.price)}")
+            Text(text = "Precio: $${"%.2f".format(dish.price)}")
+
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = { onAddClick(dish) },
+                modifier = Modifier.fillMaxWidth()
             ) {
-                AsyncImage(
-                    model = dish.imageUrl,
-                    contentDescription = dish.name,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(220.dp)
-                )
-                Text(text = dish.description, style = MaterialTheme.typography.bodyLarge)
-                Text(
-                    text = "$${dish.price}",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Button(onClick = { /* acción de pedido */ }) {
-                    Text(text = "Agregar al pedido")
-                }
-            }
-        } else {
-            Box(Modifier.padding(padding).padding(16.dp)) {
-                Text(text = "Plato no encontrado")
+                Text("Agregar al carrito")
             }
         }
     }

@@ -3,11 +3,10 @@ package com.perurest.data.local.entities
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "dishes")
-data class DishEntity(
+@Entity(tableName = "users")
+data class UserEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val name: String,
-    val description: String?,   // <- si en tu dominio es no nulo, pon String
-    val price: Double,
-    val imageUrl: String?
+    val email: String,
+    val password: String
 )
