@@ -25,7 +25,7 @@ fun DishCard(
             Column(Modifier.weight(1f)) {
                 Text(title)
                 Text(description, maxLines = 2)
-                Text("S/" + String.format("%.2f", price))
+                Text((price * 1000).toChileanPeso())
             }
         }
     }
